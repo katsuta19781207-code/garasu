@@ -1,167 +1,615 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ガラス歩留まり・見積シミュレーター</title>
-    <style>
-        :root {
-            --primary-color: #2c3e50;
-            --accent-color: #3498db;
-            --bg-color: #f4f7f6;
-        }
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: var(--bg-color);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .container {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            max-width: 500px;
-            width: 100%;
-        }
-        h1 {
-            font-size: 1.5rem;
-            color: var(--primary-color);
-            text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid var(--accent-color);
-            padding-bottom: 10px;
-        }
-        .input-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #555;
-        }
-        input, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 1rem;
-        }
-        .result-card {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
-            background: #eef7ff;
-            border-left: 5px solid var(--accent-color);
-        }
-        .result-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 1.1rem;
-        }
-        .company-name {
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-        .price {
-            font-weight: bold;
-            color: #e67e22;
-        }
-        .footer-note {
-            font-size: 0.8rem;
-            color: #888;
-            margin-top: 15px;
-            text-align: center;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>レヴィア 戦略的購買シミュレーター(2026年3月改定対応版)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+  :root { --bg: #0d0f14; --surface: #161920; --surface2: #1e2230; --border: #2a2f3e; --accent: #4fc3f7; --accent2: #00e676; --warn: #ff9800; --danger: #f44336; --text: #e8eaf0; --muted: #6b7280; --maker_h: #4fc3f7; --maker_b: #a78bfa; --optimal: #00e676; --acceptable: #29b6f6; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); padding: 24px 16px; }
+  .header { text-align: center; margin-bottom: 24px; }
+  .header h1 { font-size: 20px; font-weight: 900; color: var(--accent); letter-spacing: 0.1em; }
+  .header p { color: var(--accent2); font-size: 12px; font-weight: 700; margin-top: 4px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 0 auto 16px; max-width: 900px; }
+  .card-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;}
+  .input-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .input-group { display: flex; flex-direction: column; gap: 4px; }
+  label { font-size: 11px; font-weight: 700; color: var(--muted); }
+  input, select { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px; outline: none; }
+  input:focus { border-color: var(--accent); }
+  .checkbox-group { display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; }
+  .btn-calc { width: 100%; padding: 14px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: 900; cursor: pointer; margin-top: 16px; transition: opacity 0.2s; font-family: 'Noto Sans JP', sans-serif; font-size: 14px; }
+  .btn-calc:hover { opacity: 0.9; }
+  .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .result-grid { grid-template-columns: 1fr; } }
+  .company-card { background: var(--surface2); border-radius: 10px; padding: 16px; border: 2px solid transparent; position: relative; }
+  .company-card.optimal { border-color: var(--optimal); }
+  .company-card.acceptable { border-color: var(--acceptable); }
+  .price-main { font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 700; margin: 4px 0; }
+  .price-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .breakdown-section { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
+  .breakdown-title { font-size: 10px; color: var(--muted); margin-bottom: 8px; letter-spacing: 0.05em; text-align: center; }
+  .breakdown-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--text); padding: 3px 0; font-family: 'JetBrains Mono', monospace; }
+  .breakdown-row.highlight-opt { color: var(--optimal); }
+  .breakdown-row.highlight-warn { color: var(--warn); }
+  .breakdown-row.highlight-danger { color: var(--danger); font-weight: bold; }
+  .market-insight-box { margin-top: 16px; padding: 16px; background: rgba(79, 195, 247, 0.05); border: 1px solid rgba(79, 195, 247, 0.3); border-radius: 8px; }
+  .market-insight-title { font-size: 11px; font-weight: 900; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .market-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; text-align: center; }
+  .market-col { background: var(--surface); padding: 10px; border-radius: 6px; border: 1px solid var(--border); }
+  .market-col-title { font-size: 10px; color: var(--muted); margin-bottom: 6px; }
+  .market-price { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700; color: var(--text); }
+  .market-margin { font-size: 10px; margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+  .margin-high { color: var(--danger); }
+  .margin-low { color: var(--optimal); }
+  .warn-box { background: rgba(255,152,0,0.1); border: 1px solid var(--warn); border-radius: 6px; padding: 10px; color: var(--warn); font-size: 11px; margin-bottom: 12px; line-height: 1.4; }
+  .log-table-wrap { overflow-x: auto; margin-top: 12px; }
+  table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 11px; text-align: left; }
+  th, td { padding: 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { background: var(--surface2); color: var(--muted); }
+  .revision-box { grid-column: span 2; padding: 10px 12px; background: rgba(244, 67, 54, 0.1); border: 1px solid var(--danger); border-radius: 6px; margin-top: 8px; }
+  @media (max-width: 600px) { .revision-box { grid-column: span 1; } }
+
+  /* ===== 歩留まりパネル ===== */
+  .yield-panel { margin-top: 20px; }
+  .yield-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+  .yield-header-left { display: flex; align-items: center; gap: 10px; }
+  .yield-title { font-size: 13px; font-weight: 900; color: var(--accent2); letter-spacing: 0.08em; }
+  .yield-select-wrap { display: flex; align-items: center; gap: 8px; }
+  .yield-select-wrap label { font-size: 10px; color: var(--muted); white-space: nowrap; }
+  .yield-select-wrap select { font-size: 12px; padding: 5px 8px; width: auto; }
+
+  .yield-body { display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: start; }
+  @media (max-width: 640px) { .yield-body { grid-template-columns: 1fr; } }
+
+  /* canvas wrapper */
+  .canvas-wrap {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .canvas-label { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  canvas { display: block; border-radius: 4px; }
+
+  /* 統計サイドパネル */
+  .yield-stats { min-width: 200px; display: flex; flex-direction: column; gap: 10px; }
+  .stat-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .stat-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.05em; }
+  .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; }
+  .stat-sub { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+  .stat-value.good { color: var(--optimal); }
+  .stat-value.warn { color: var(--warn); }
+  .stat-value.danger { color: var(--danger); }
+
+  /* 凡例 */
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 4px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+
+  /* rotation toggle */
+  .toggle-btn { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font-size: 11px; padding: 4px 10px; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; }
+  .toggle-btn:hover, .toggle-btn.active { border-color: var(--accent2); color: var(--accent2); background: rgba(0,230,118,0.07); }
+</style>
 </head>
 <body>
 
-<div class="container">
-    <h1>ガラス見積シミュレーター</h1>
-    
-    <div class="input-group">
-        <label>ガラスサイズ W (mm)</label>
-        <input type="number" id="width" placeholder="例: 400" oninput="calculate()">
-    </div>
-    
-    <div class="input-group">
-        <label>ガラスサイズ H (mm)</label>
-        <input type="number" id="height" placeholder="例: 600" oninput="calculate()">
-    </div>
+<div class="header">
+  <h1>🪟 LEVIA Strategic Estimator</h1>
+  <p>✓ 2026年3月 H社 価格改定(10%UP) シミュレーション対応</p>
+</div>
 
+<!-- 入力フォーム -->
+<div class="card">
+  <div class="card-title">⚙️ CONFIGURATION</div>
+  <div class="input-grid">
+    <div class="input-group"><label>幅 W (mm)</label><input type="number" id="width" value="472"></div>
+    <div class="input-group"><label>高さ H (mm)</label><input type="number" id="height" value="445"></div>
     <div class="input-group">
-        <label>端部マージン / NC対応 (mm)</label>
-        <input type="number" id="margin" value="5" oninput="calculate()">
+      <label>基板ガラス</label>
+      <select id="substrate">
+        <option value="high_trans" selected>CFL 4mm (高透過)</option>
+        <option value="clear">FL 4mm (普通透明)</option>
+        <option value="tempered_high">強化 CFL 4mm</option>
+        <option value="tempered_clear">強化 FL 4mm</option>
+        <option value="bronze">BFL 4mm (ブロンズ)</option>
+        <option value="frost">フロスト 4mm</option>
+      </select>
     </div>
+    <div class="input-group">
+      <label>フィルム</label>
+      <select id="film">
+        <option value="none">なし（素地など）</option>
+        <option value="kik_m50">KIK-M50 (飛散防止)</option>
+        <option value="c714">C-714 (乳白)</option>
+        <option value="c18">C-18</option>
+        <option value="dnp_t2">DNP-T2</option>
+        <option value="milky_milky" selected>ミルキーミルキー</option>
+        <option value="zh05">ZH05 (高級)</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label>エッジ加工 (外周)</label>
+      <select id="edge_type">
+        <option value="ito" selected>糸面（簡易面取り・無料）</option>
+        <option value="migaki">磨き面（ツヤ出し・有料）</option>
+      </select>
+    </div>
+    <div class="input-group"><label>発注枚数 (Lot)</label><input type="number" id="qty" value="40"></div>
+  </div>
 
-    <div id="results">
-        <div class="result-card">
-            <div class="result-row">
-                <span class="company-name">B社 見積</span>
-                <span class="price" id="priceB">¥0</span>
-            </div>
-            <div class="result-row" style="font-size: 0.9rem; color: #666;">
-                <span>歩留まり面積</span>
-                <span id="areaB">0 ㎡</span>
-            </div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 15px;">
+    <div><label class="checkbox-group"><input type="checkbox" id="minAreaRule"> 0.3㎡ 最小課金ルール適用</label></div>
+    <div><label class="checkbox-group"><input type="checkbox" id="tapeOption"> 両面テープ貼り等（特殊加算）</label></div>
+    <div class="revision-box">
+      <label class="checkbox-group" style="color: var(--danger); font-weight: 700;">
+        <input type="checkbox" id="maker_hRevision">
+        📈 【H社】2026年3月 価格改定を適用 (+10%)
+      </label>
+    </div>
+  </div>
+  <button class="btn-calc" onclick="calculate()">▶ コスト内訳を計算</button>
+</div>
+
+<!-- 結果 -->
+<div class="card" id="result-section" style="display:none;">
+  <div class="card-title">💰 OUTPUT RESULT <span id="logic-info" style="text-transform:none; font-weight:400; color: var(--accent);"></span></div>
+  <div class="result-grid" id="result-grid"></div>
+  <div class="market-insight-box" id="market-insight"></div>
+</div>
+
+<!-- ★ 歩留まりビジュアライザー ★ -->
+<div class="card" id="yield-section" style="display:none;">
+  <div class="card-title" style="margin-bottom:0; border:none; padding-bottom:0;">
+    <span>📐 YIELD VISUALIZER — 原板歩留まり</span>
+  </div>
+
+  <div class="yield-panel">
+    <div class="yield-header">
+      <div class="yield-header-left">
+        <div class="yield-select-wrap">
+          <label>原板サイズ</label>
+          <select id="plate-select" onchange="renderYield()">
+            <option value="3048,2134">3048 × 2134 mm (最大板)</option>
+            <option value="2438,1829">2438 × 1829 mm (大板)</option>
+            <option value="1829,1219" selected>1829 × 1219 mm (標準板)</option>
+            <option value="1220,910">1220 × 910 mm (小板)</option>
+            <option value="900,600">900 × 600 mm (カット品)</option>
+          </select>
         </div>
-
-        <div class="result-card" style="background: #fff4e5; border-left-color: #e67e22;">
-            <div class="result-row">
-                <span class="company-name">H社 見積</span>
-                <span class="price" id="priceH">¥0</span>
-            </div>
-            <div class="result-row" style="font-size: 0.9rem; color: #666;">
-                <span>歩留まり面積</span>
-                <span id="areaH">0 ㎡</span>
-            </div>
+        <button class="toggle-btn" id="rot-btn" onclick="toggleRotation()">🔄 部材を90°回転</button>
+        <div class="yield-select-wrap">
+          <label>端部マージン</label>
+          <input type="number" id="edge-margin" value="10" min="0" max="50" style="width:64px; font-size:12px; padding:5px 8px;" onchange="renderYield()">
+          <label style="margin-left:-4px;">mm</label>
         </div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(79,195,247,0.7);"></div>有効面積</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(244,67,54,0.45);"></div>端材ロス</div>
+        <div class="legend-item"><div class="legend-dot" style="border:1px dashed rgba(255,255,255,0.3);"></div>カット線</div>
+      </div>
     </div>
 
-    <p class="footer-note">※マージンを加算した面積で計算しています</p>
+    <div class="yield-body">
+      <div class="canvas-wrap">
+        <canvas id="yield-canvas"></canvas>
+        <div class="canvas-label" id="canvas-label">–</div>
+      </div>
+      <div class="yield-stats" id="yield-stats"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ログ -->
+<div class="card">
+  <div class="card-title">📋 EXECUTION LOGS
+    <button onclick="copyTSV()" style="background:none; border:1px solid var(--accent); color:var(--accent); font-size:10px; padding:4px 8px; border-radius:4px; cursor:pointer; font-weight:bold; font-family:'Noto Sans JP';">Excelへエクスポート</button>
+  </div>
+  <div class="log-table-wrap">
+    <table>
+      <thead>
+        <tr><th>Size (W×H)</th><th>Qty</th><th>仕様 (Glass/Film)</th><th>H社(1枚)</th><th>B社(1枚)</th><th>倍率 Ratio</th><th>判定 Status</th><th>差額 Diff</th></tr>
+      </thead>
+      <tbody id="log-body"></tbody>
+    </table>
+  </div>
 </div>
 
 <script>
-    // 単価設定（ここを実際の単価に書き換えてください）
-    const UNIT_PRICE_B = 5000; // B社の㎡単価例
-    const UNIT_PRICE_H = 5500; // H社の㎡単価例
+// ===============================
+// マスターデータ
+// ===============================
+const MASTER = {
+  maker_h: { fixed: 700, edge_price: 800, discountThreshold: 40, discountRate: 0.15,
+    sub: { high_trans: 7700, clear: 5500, bronze: 6500, tempered_high: 12000, tempered_clear: 9500, frost: 9000 },
+    film: { none: 0, kik_m50: 700, c714: 1800, c18: 1800, dnp_t2: 2500, milky_milky: 3700, zh05: 5800 }
+  },
+  maker_b: { fixed: 350, edge_price: 0, discountThreshold: 100, discountRate: 0.05,
+    sub: { high_trans: 6940, clear: 5500, bronze: 6500, tempered_high: 12000, tempered_clear: 9500, frost: 9000 },
+    film: { none: 0, kik_m50: 700, c714: 1860, c18: 1860, dnp_t2: 2500, milky_milky: 4600, zh05: 5800 }
+  }
+};
+const MARKET_COST = { high_trans: 3500, clear: 1500, bronze: 2500, tempered_high: 6000, tempered_clear: 4000, frost: 4500 };
+const LABELS = {
+  sub: { high_trans: "CFL", clear: "FL", bronze: "BFL", tempered_high: "強化CFL", tempered_clear: "強化FL", frost: "フロスト" },
+  film: { none: "素地", kik_m50: "KIK", c714: "C-714", c18: "C-18", dnp_t2: "DNP-T2", milky_milky: "ミルキー", zh05: "ZH05" }
+};
 
-    function calculate() {
-        const w = parseFloat(document.getElementById('width').value) || 0;
-        const h = parseFloat(document.getElementById('height').value) || 0;
-        const margin = parseFloat(document.getElementById('margin').value) || 0;
+// ===============================
+// 歩留まり状態
+// ===============================
+let _yieldState = { w: 0, h: 0, rotated: false };
 
-        if (w > 0 && h > 0) {
-            // マージンを加味したサイズ
-            const finalW = w + (margin * 2);
-            const finalH = h + (margin * 2);
-            
-            // 面積計算 (㎡)
-            const area = (finalW * finalH) / 1000000;
+function toggleRotation() {
+  _yieldState.rotated = !_yieldState.rotated;
+  const btn = document.getElementById('rot-btn');
+  btn.classList.toggle('active', _yieldState.rotated);
+  renderYield();
+}
 
-            // 各社計算
-            const totalB = Math.round(area * UNIT_PRICE_B);
-            const totalH = Math.round(area * UNIT_PRICE_H);
+function renderYield() {
+  if (!_yieldState.w || !_yieldState.h) return;
 
-            // 画面表示
-            document.getElementById('priceB').innerText = "¥" + totalB.toLocaleString();
-            document.getElementById('areaB').innerText = area.toFixed(4) + " ㎡";
-            
-            document.getElementById('priceH').innerText = "¥" + totalH.toLocaleString();
-            document.getElementById('areaH').innerText = area.toFixed(4) + " ㎡";
-        } else {
-            document.getElementById('priceB').innerText = "¥0";
-            document.getElementById('priceH').innerText = "¥0";
-        }
+  const plateVal = document.getElementById('plate-select').value.split(',');
+  const PW = parseInt(plateVal[0]);
+  const PH = parseInt(plateVal[1]);
+  const MARGIN = parseInt(document.getElementById('edge-margin').value) || 0;
+  // NCルーター：端部マージンを両側引いた有効エリアで計算
+  const effectiveW = PW - MARGIN * 2;
+  const effectiveH = PH - MARGIN * 2;
+
+  let pw = _yieldState.rotated ? _yieldState.h : _yieldState.w;
+  let ph = _yieldState.rotated ? _yieldState.w : _yieldState.h;
+
+  const cols = Math.floor(effectiveW / pw);
+  const rows = Math.floor(effectiveH / ph);
+  const count = cols * rows;
+
+  // 使用面積 / 全体面積
+  const usedArea  = count * pw * ph;
+  const plateArea = PW * PH;
+  const effectiveArea = effectiveW * effectiveH;
+  const yieldRate = usedArea / effectiveArea;   // 有効エリア内での歩留まり
+  const lossArea  = plateArea - usedArea;
+
+  // Canvas描画
+  const canvas = document.getElementById('yield-canvas');
+  const MAX_W = Math.min(520, window.innerWidth - 80);
+  const MAX_H = 340;
+  const scale = Math.min(MAX_W / PW, MAX_H / PH);
+  canvas.width  = Math.round(PW * scale);
+  canvas.height = Math.round(PH * scale);
+  const ctx = canvas.getContext('2d');
+
+  // 背景（全体：端材色）
+  ctx.fillStyle = 'rgba(244,67,54,0.25)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // マージン帯をさらに暗く（四辺）
+  const mx = Math.round(MARGIN * scale);
+  const my = Math.round(MARGIN * scale);
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(0, 0, canvas.width, my);                          // 上
+  ctx.fillRect(0, canvas.height - my, canvas.width, my);        // 下
+  ctx.fillRect(0, 0, mx, canvas.height);                        // 左
+  ctx.fillRect(canvas.width - mx, 0, mx, canvas.height);       // 右
+  // マージン寸法ラベル
+  if (MARGIN > 0 && mx > 6) {
+    ctx.fillStyle = 'rgba(255,180,0,0.85)';
+    ctx.font = `bold ${Math.max(9, Math.min(12, mx))}px JetBrains Mono, monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${MARGIN}`, mx / 2, canvas.height / 2);
+    ctx.fillText(`${MARGIN}`, canvas.width - mx / 2, canvas.height / 2);
+    ctx.fillText(`${MARGIN}`, canvas.width / 2, my / 2);
+    ctx.fillText(`${MARGIN}`, canvas.width / 2, canvas.height - my / 2);
+  }
+
+  // 有効ピース（マージン分オフセット）
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x = Math.round(mx + c * pw * scale);
+      const y = Math.round(my + r * ph * scale);
+      const sw = Math.round(pw * scale);
+      const sh = Math.round(ph * scale);
+
+      // 塗り
+      ctx.fillStyle = 'rgba(79,195,247,0.55)';
+      ctx.fillRect(x, y, sw, sh);
+
+      // ガラス光沢感
+      const grad = ctx.createLinearGradient(x, y, x + sw * 0.6, y + sh * 0.6);
+      grad.addColorStop(0, 'rgba(255,255,255,0.18)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(x, y, sw, sh);
+
+      // 枠線
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 0.5, y + 0.5, sw - 1, sh - 1);
+
+      // 番号ラベル（大きすぎない場合）
+      const idx = r * cols + c + 1;
+      const fontSize = Math.max(8, Math.min(14, sw / 3.5));
+      if (sw > 20 && sh > 16) {
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.font = `700 ${fontSize}px JetBrains Mono, monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(idx, x + sw / 2, y + sh / 2);
+      }
     }
-</script>
+  }
 
+  // カット線（水平）NCルーター：ノコ目なし
+  ctx.setLineDash([4, 3]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 1;
+  for (let r = 1; r < rows; r++) {
+    const y = Math.round(my + r * ph * scale);
+    ctx.beginPath(); ctx.moveTo(mx, y); ctx.lineTo(canvas.width - mx, y); ctx.stroke();
+  }
+  // カット線（垂直）
+  for (let c = 1; c < cols; c++) {
+    const x = Math.round(mx + c * pw * scale);
+    ctx.beginPath(); ctx.moveTo(x, my); ctx.lineTo(x, canvas.height - my); ctx.stroke();
+  }
+  // 有効エリア枠（マージン内側）
+  ctx.setLineDash([6, 3]);
+  ctx.strokeStyle = 'rgba(255,180,0,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(mx, my, Math.round(effectiveW * scale), Math.round(effectiveH * scale));
+  ctx.setLineDash([]);
+
+  // 原板外枠
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+
+  // キャプション
+  document.getElementById('canvas-label').textContent =
+    `原板 ${PW}×${PH}mm  |  有効エリア ${effectiveW}×${effectiveH}mm（端部マージン±${MARGIN}mm）|  部材 ${pw}×${ph}mm`;
+
+  // 統計パネル
+  const rateClass = yieldRate >= 0.75 ? 'good' : yieldRate >= 0.5 ? 'warn' : 'danger';
+  const rateEmoji = yieldRate >= 0.75 ? '🟢' : yieldRate >= 0.5 ? '🟡' : '🔴';
+
+  // 何原板必要か（発注枚数を満たすには）
+  const qty = parseInt(document.getElementById('qty').value) || 1;
+  const platesNeeded = count > 0 ? Math.ceil(qty / count) : '–';
+
+  document.getElementById('yield-stats').innerHTML = `
+    <div class="stat-block">
+      <div class="stat-label">1原板あたり取れ数</div>
+      <div class="stat-value ${count > 0 ? 'good' : 'danger'}">${count > 0 ? count : 0} 枚</div>
+      <div class="stat-sub">${cols} 列 × ${rows} 行</div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-label">歩留まり率 ${rateEmoji}</div>
+      <div class="stat-value ${rateClass}">${(yieldRate * 100).toFixed(1)}%</div>
+      <div class="stat-sub">有効エリア基準 / 原板全体 ${(plateArea/1e6).toFixed(3)}㎡</div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-label">端材ロス面積</div>
+      <div class="stat-value ${lossArea / plateArea > 0.4 ? 'danger' : 'warn'}">${(lossArea / 1e6).toFixed(3)}㎡</div>
+      <div class="stat-sub">約 ${(lossArea / 1e6 * 100).toFixed(1)} dm²</div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-label">発注 ${qty} 枚に必要な原板</div>
+      <div class="stat-value">${platesNeeded} 枚</div>
+      <div class="stat-sub">${count > 0 ? `余り ${count * platesNeeded - qty}枚 （予備枠）` : '1枚も取れません'}</div>
+    </div>
+    ${count === 0 ? `<div class="stat-block" style="border-color:var(--danger); background: rgba(244,67,54,0.08);">
+      <div class="stat-label" style="color:var(--danger);">⚠️ 注意</div>
+      <div class="stat-sub" style="color:var(--warn); line-height:1.6;">部材が原板より大きいか、取れ数が0です。別の原板サイズを選ぶか、部材を回転してください。</div>
+    </div>` : ''}
+    <div class="stat-block" style="background: rgba(0,230,118,0.05); border-color: rgba(0,230,118,0.25);">
+      <div class="stat-label" style="color:var(--muted);">🔄 90°回転時</div>
+      <div class="stat-sub" style="color:var(--muted); line-height:1.7;">
+        ${(function(){
+          const rw = ph, rh = pw;
+          const rc = Math.floor(effectiveW / rw);
+          const rr = Math.floor(effectiveH / rh);
+          const rcount = rc * rr;
+          return `回転後: ${rcount}枚 (${rc}×${rr})${rcount > count ? ' ← <b style="color:var(--optimal)">こちらが多い</b>' : rcount === count ? ' ← 同じ' : ''}`;
+        })()}
+      </div>
+    </div>
+  `;
+}
+
+// ===============================
+// 見積計算（既存ロジック）
+// ===============================
+function calculate() {
+  const w   = parseInt(document.getElementById('width').value)  || 0;
+  const h   = parseInt(document.getElementById('height').value) || 0;
+  const qty = parseInt(document.getElementById('qty').value)    || 1;
+  const subKey    = document.getElementById('substrate').value;
+  const filmKey   = document.getElementById('film').value;
+  const edgeType  = document.getElementById('edge_type').value;
+  const useMinArea = document.getElementById('minAreaRule').checked;
+  const useTape   = document.getElementById('tapeOption').checked;
+  const applyRevision = document.getElementById('maker_hRevision').checked;
+
+  if (w <= 0 || h <= 0) { alert('数値を正しく入力してください'); return; }
+
+  let rawArea = (w * h) / 1000000;
+  const perimeter = 2 * (w + h) / 1000;
+  const calcArea  = (useMinArea && rawArea < 0.3) ? 0.3 : rawArea;
+
+  const results = ['maker_h', 'maker_b'].map(m => {
+    const config = MASTER[m];
+    const subPrice  = config.sub[subKey];
+    const filmPrice = config.film[filmKey];
+
+    let costBase     = config.fixed;
+    let costMaterial = calcArea * (subPrice + filmPrice);
+    let actualEdge   = (edgeType === 'migaki') ? config.edge_price : 0;
+    let costEdge     = perimeter * actualEdge;
+    let costOption   = useTape ? 150 : 0;
+    let subTotal     = costBase + costMaterial + costEdge + costOption;
+
+    let discountAmount = 0, isDiscounted = false;
+    if (qty >= config.discountThreshold) {
+      discountAmount = subTotal * config.discountRate;
+      isDiscounted = true;
+    }
+    let afterDiscount = subTotal - discountAmount;
+
+    let correction = 1.0;
+    if (Math.max(w, h) > 1500) correction = 1.3;
+    else if (Math.max(w, h) > 1000) correction = 1.1;
+    let correctionAmount = afterDiscount * (correction - 1.0);
+    let priceBeforeRevision = afterDiscount + correctionAmount;
+
+    let revisionAmount = 0, isRevised = false;
+    if (m === 'maker_h' && applyRevision) {
+      revisionAmount = priceBeforeRevision * 0.10;
+      isRevised = true;
+    }
+
+    let finalPrice = Math.round((priceBeforeRevision + revisionAmount) / 10) * 10;
+    return {
+      id: m, price: finalPrice, calcArea, perimeter,
+      costBase, costMaterial, costEdge, costOption,
+      discountAmount, correctionAmount, correction,
+      isLarge: Math.max(w, h) > 1500, isDiscounted,
+      discountRate: config.discountRate,
+      subPriceUnit: subPrice, filmPriceUnit: filmPrice,
+      revisionAmount, isRevised
+    };
+  });
+
+  display(results, w, h, qty, subKey, filmKey, (useMinArea && rawArea < 0.3), applyRevision);
+
+  // 歩留まり更新
+  _yieldState.w = w;
+  _yieldState.h = h;
+  document.getElementById('yield-section').style.display = 'block';
+  renderYield();
+}
+
+function display(res, w, h, qty, subKey, filmKey, minAreaApplies, applyRevision) {
+  const section = document.getElementById('result-section');
+  section.style.display = 'block';
+  const grid = document.getElementById('result-grid');
+  const ham = res[0]; const ban = res[1];
+  const ratio = (ham.price / ban.price).toFixed(2);
+
+  let maker_hStatusHtml = '', rowJudgementHtml = '';
+  if (ham.price <= ban.price) {
+    maker_hStatusHtml = '<div style="background:var(--optimal); color:#000; font-size:10px; font-weight:900; padding:2px 6px; border-radius:4px; display:inline-block; margin-top:12px;">最安・推奨</div>';
+    rowJudgementHtml   = '<span style="color:var(--optimal);font-weight:700;">H社が最安</span>';
+  } else if (ratio <= 1.25) {
+    maker_hStatusHtml = `<div style="background:var(--acceptable); color:#000; font-size:10px; font-weight:900; padding:2px 6px; border-radius:4px; display:inline-block; margin-top:12px;">🛡️ 戦略的許容枠 (${ratio}倍)</div>`;
+    rowJudgementHtml   = `<span style="color:var(--acceptable);font-weight:700;">2社購買枠</span>`;
+  } else {
+    maker_hStatusHtml = `<div style="background:var(--warn); color:#000; font-size:10px; font-weight:900; padding:2px 6px; border-radius:4px; display:inline-block; margin-top:12px;">⚠️ コスト超過 (${ratio}倍)</div>`;
+    rowJudgementHtml   = `<span style="color:var(--warn);font-weight:700;">B社へ集約</span>`;
+  }
+
+  document.getElementById('logic-info').innerText = applyRevision ? "※2026年3月改定価格を適用中" : "";
+
+  grid.innerHTML = res.map(r => {
+    let statusBadge = '', cardClass = '';
+    if (r.id === 'maker_h') {
+      statusBadge = maker_hStatusHtml;
+      if (ratio <= 1.25 && ratio > 1.0) cardClass = 'acceptable';
+      if (ham.price <= ban.price) cardClass = 'optimal';
+    } else {
+      if (ban.price < ham.price) {
+        statusBadge = '<div style="background:var(--optimal); color:#000; font-size:10px; font-weight:900; padding:2px 6px; border-radius:4px; display:inline-block; margin-top:12px;">最安・ベース推奨</div>';
+        cardClass = 'optimal';
+      }
+    }
+    return `
+    <div class="company-card ${cardClass}">
+      <div class="price-label" style="font-weight:bold; font-size:13px; color: ${r.id==='maker_h' ? 'var(--maker_h)' : 'var(--maker_b)'};">
+        ${r.id === 'maker_h' ? 'H社' : 'B社'}
+      </div>
+      <div class="price-main">¥${r.price.toLocaleString()}</div>
+      <div class="price-label">合計: ¥${(r.price * qty).toLocaleString()}</div>
+      <div class="breakdown-section">
+        <div class="breakdown-title">── コスト内訳 (1枚あたり) ──</div>
+        <div class="breakdown-row"><span>基本固定費</span><span>¥${Math.round(r.costBase).toLocaleString()}</span></div>
+        <div class="breakdown-row"><span>材料費 <span style="font-size:9px;color:var(--muted)">(${r.calcArea.toFixed(3)}㎡)</span></span><span>¥${Math.round(r.costMaterial).toLocaleString()}</span></div>
+        <div class="breakdown-row" style="padding-left:10px; font-size:9px; color:var(--muted);">
+          <span>└ ガラス: ¥${r.subPriceUnit.toLocaleString()}/㎡ | フィルム: ¥${r.filmPriceUnit.toLocaleString()}/㎡</span>
+        </div>
+        <div class="breakdown-row"><span>エッジ加工費 <span style="font-size:9px;color:var(--muted)">(${r.perimeter.toFixed(2)}m)</span></span><span>¥${Math.round(r.costEdge).toLocaleString()}</span></div>
+        ${r.costOption > 0 ? `<div class="breakdown-row"><span>特殊加工費</span><span>¥${Math.round(r.costOption).toLocaleString()}</span></div>` : ''}
+        ${r.isDiscounted ? `<div class="breakdown-row highlight-opt"><span>量産割引 (-${r.discountRate*100}%)</span><span>-¥${Math.round(r.discountAmount).toLocaleString()}</span></div>` : ''}
+        ${r.correction > 1 ? `<div class="breakdown-row highlight-warn"><span>大判補正 (×${r.correction})</span><span>+¥${Math.round(r.correctionAmount).toLocaleString()}</span></div>` : ''}
+        ${r.isRevised ? `<div class="breakdown-row highlight-danger"><span>📈 '26年3月改定 (+10%)</span><span>+¥${Math.round(r.revisionAmount).toLocaleString()}</span></div>` : ''}
+      </div>
+      ${statusBadge}
+    </div>`;
+  }).join('');
+
+  // 市場インサイト
+  const marketInsight = document.getElementById('market-insight');
+  const marketCost = MARKET_COST[subKey];
+  const hamMargin = ham.subPriceUnit - marketCost;
+  const banMargin = ban.subPriceUnit - marketCost;
+  marketInsight.innerHTML = `
+    <div class="market-insight-title">🔍 原板価格相場とメーカー利幅の推測 (1㎡あたり / ${LABELS.sub[subKey]})</div>
+    <div class="market-grid">
+      <div class="market-col" style="border-color: rgba(255,255,255,0.2);">
+        <div class="market-col-title">市場の原板卸値 (目安)</div>
+        <div class="market-price">約 ¥${marketCost.toLocaleString()}</div>
+        <div class="market-margin" style="color:var(--muted);">純粋な材料原価</div>
+      </div>
+      <div class="market-col" style="border-color: var(--maker_h);">
+        <div class="market-col-title">H社の設定単価</div>
+        <div class="market-price" style="color:var(--maker_h);">¥${ham.subPriceUnit.toLocaleString()}</div>
+        <div class="market-margin margin-high">推測利幅: +¥${hamMargin.toLocaleString()}</div>
+      </div>
+      <div class="market-col" style="border-color: var(--maker_b);">
+        <div class="market-col-title">B社の設定単価</div>
+        <div class="market-price" style="color:var(--maker_b);">¥${ban.subPriceUnit.toLocaleString()}</div>
+        <div class="market-margin ${banMargin < hamMargin ? 'margin-low' : 'margin-high'}">推測利幅: +¥${banMargin.toLocaleString()}</div>
+      </div>
+    </div>
+  `;
+
+  // ログ
+  const logBody = document.getElementById('log-body');
+  const diff = Math.abs(ham.price - ban.price);
+  logBody.insertAdjacentHTML('afterbegin', `<tr>
+    <td>${w} × ${h}</td><td>${qty}</td>
+    <td>${LABELS.sub[subKey]}/${LABELS.film[filmKey]}</td>
+    <td style="color:var(--maker_h)">¥${ham.price.toLocaleString()}</td>
+    <td style="color:var(--maker_b)">¥${ban.price.toLocaleString()}</td>
+    <td style="font-weight:bold;">${ratio}倍</td>
+    <td>${rowJudgementHtml}</td>
+    <td>¥${diff.toLocaleString()}</td>
+  </tr>`);
+}
+
+function copyTSV() {
+  const rows = Array.from(document.querySelectorAll('#log-body tr'));
+  if (rows.length === 0) { alert('ログがありません'); return; }
+  const text = rows.map(r => Array.from(r.cells).map(c => c.innerText.replace(/¥|,/g, '')).join('\t')).join('\n');
+  navigator.clipboard.writeText("W×H\tQty\t仕様\tH社単価\tB社単価\t倍率\t判定\t差額\n" + text)
+    .then(() => alert("Excel貼り付け用にコピーしました！"));
+}
+
+// ウィンドウリサイズ対応
+window.addEventListener('resize', () => { if (_yieldState.w) renderYield(); });
+</script>
 </body>
 </html>
